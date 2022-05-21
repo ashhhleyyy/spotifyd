@@ -1,6 +1,6 @@
 #[cfg(feature = "dbus_mpris")]
 use crate::dbus_mpris::DbusServer;
-use crate::{process::spawn_program_on_event, metrics};
+use crate::{metrics, process::spawn_program_on_event};
 use futures::{
     self,
     future::{self, Fuse, FusedFuture},
@@ -21,8 +21,8 @@ use librespot_playback::{
     player::Player,
 };
 use log::error;
-use std::{pin::Pin, net::SocketAddr};
 use std::sync::Arc;
+use std::{net::SocketAddr, pin::Pin};
 
 pub struct AudioSetup {
     pub mixer: Box<dyn FnMut() -> Box<dyn Mixer>>,
