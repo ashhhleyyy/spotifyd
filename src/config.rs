@@ -13,7 +13,7 @@ use log::{error, info, warn};
 use reqwest::Url;
 use serde::{de::Error, de::Unexpected, Deserialize, Deserializer};
 use sha1::{Digest, Sha1};
-use std::{fmt, fs, path::PathBuf, str::FromStr, string::ToString};
+use std::{fmt, fs, path::PathBuf, str::FromStr, string::ToString, net::SocketAddr};
 use structopt::{clap::AppSettings, StructOpt};
 
 const CONFIG_FILE_NAME: &str = "spotifyd.conf";
@@ -375,6 +375,10 @@ pub struct SharedConfigValues {
     #[structopt(long)]
     #[serde(default)]
     autoplay: bool,
+
+    #[structopt(long)]
+    #[serde(default)]
+    metrics_address: Option<SocketAddr>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -521,7 +525,8 @@ impl SharedConfigValues {
             zeroconf_port,
             proxy,
             device_type,
-            use_mpris
+            use_mpris,
+            metrics_address
         );
 
         // Handles boolean merging.
@@ -575,6 +580,7 @@ pub(crate) struct SpotifydConfig {
     pub(crate) zeroconf_port: Option<u16>,
     pub(crate) device_type: String,
     pub(crate) autoplay: bool,
+    pub(crate) metrics_address: Option<SocketAddr>,
 }
 
 pub(crate) fn get_internal_config(config: CliConfig) -> SpotifydConfig {
@@ -733,6 +739,7 @@ pub(crate) fn get_internal_config(config: CliConfig) -> SpotifydConfig {
         zeroconf_port: config.shared_config.zeroconf_port,
         device_type,
         autoplay,
+        metrics_address: config.shared_config.metrics_address,
     }
 }
 

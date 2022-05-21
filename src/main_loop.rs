@@ -1,6 +1,6 @@
 #[cfg(feature = "dbus_mpris")]
 use crate::dbus_mpris::DbusServer;
-use crate::process::spawn_program_on_event;
+use crate::{process::spawn_program_on_event, metrics};
 use futures::{
     self,
     future::{self, Fuse, FusedFuture},
@@ -21,7 +21,7 @@ use librespot_playback::{
     player::Player,
 };
 use log::error;
-use std::pin::Pin;
+use std::{pin::Pin, net::SocketAddr};
 use std::sync::Arc;
 
 pub struct AudioSetup {
@@ -82,6 +82,7 @@ pub(crate) struct MainLoop {
     #[cfg_attr(not(feature = "dbus_mpris"), allow(unused))]
     pub(crate) use_mpris: bool,
     pub(crate) credentials_provider: CredentialsProvider,
+    pub(crate) metrics_address: Option<SocketAddr>,
 }
 
 impl MainLoop {
@@ -97,6 +98,10 @@ impl MainLoop {
     pub(crate) async fn run(&mut self) {
         tokio::pin! {
             let ctrl_c = tokio::signal::ctrl_c();
+        }
+
+        if let Some(metrics_address) = self.metrics_address {
+            tokio::spawn(metrics::run_server(metrics_address));
         }
 
         'mainloop: loop {
@@ -188,6 +193,7 @@ impl MainLoop {
                     // a new player event is available and no program is running
                     event = event_channel.recv(), if running_event_program.is_terminated() => {
                         let event = event.unwrap();
+                        metrics::handle_playback_event(&event);
                         #[cfg(feature = "dbus_mpris")]
                         if let Some(ref tx) = mpris_event_tx {
                             tx.send(event.clone()).unwrap();
